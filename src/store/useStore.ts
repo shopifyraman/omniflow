@@ -2,6 +2,31 @@ import { create } from 'zustand';
 
 export type Role = 'super_admin' | 'admin' | 'employee' | 'client';
 
+export type UserStatus = 'Active' | 'Inactive' | 'Invited' | 'Suspended' | 'Blocked' | 'Pending Verification';
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: Role;
+  company: string;
+  department: string;
+  designation: string;
+  assignedManager?: string;
+  assignedClients: string[];
+  status: UserStatus;
+  avatar: string;
+  timeZone: string;
+  language: string;
+  lastLogin: string;
+  createdDate: string;
+  isGoogleEnabled: boolean;
+  is2FAEnabled: boolean;
+  forcePasswordChange?: boolean;
+  tempPassword?: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -202,6 +227,7 @@ export interface AppSettings {
 interface AppState {
   activeRole: Role;
   activeUser: { name: string; email: string; avatar: string; department: string; phone: string; company: string; lastLogin: string };
+  users: UserAccount[];
   clients: Client[];
   employees: Employee[];
   projects: Project[];
@@ -217,7 +243,7 @@ interface AppState {
   // Auth State
   isAuthenticated: boolean;
   userEmail: string;
-  loginHistory: { id: string; date: string; device: string; ip: string; status: string }[];
+  loginHistory: { id: string; date: string; device: string; ip: string; status: string; browser?: string; location?: string; method?: string }[];
   activeSessions: { id: string; device: string; location: string; lastActive: string; current: boolean }[];
   
   // Auth & Security Actions
@@ -229,7 +255,15 @@ interface AppState {
   changeEmail: (newEmail: string) => void;
   toggleGoogleConnection: () => void;
   revokeSession: (id: string) => void;
-  
+
+  // User Management Actions
+  addUserAccount: (account: Omit<UserAccount, 'id' | 'createdDate' | 'lastLogin'>) => UserAccount;
+  inviteUserAccount: (email: string, role: Role, company: string) => UserAccount;
+  updateUserAccount: (id: string, updates: Partial<UserAccount>) => void;
+  updateUserStatus: (id: string, status: UserStatus) => void;
+  deleteUserAccount: (id: string) => void;
+  resetUserPassword: (id: string) => string;
+
   // Client CRUD
   addClient: (client: Omit<Client, 'id' | 'projectsCount' | 'joinedDate'>) => void;
   updateClient: (clientId: string, client: Partial<Client>) => void;
@@ -285,15 +319,170 @@ export const useStore = create<AppState>((set, get) => ({
     lastLogin: '2026-08-02 22:45'
   },
   theme: 'light',
-  
-  // Default to FALSE so app always lands on Login Page!
   isAuthenticated: false,
   userEmail: '',
 
+  users: [
+    {
+      id: 'usr-1',
+      name: 'Sarah Jenkins',
+      email: 'sarah@omniflow.io',
+      phone: '+1 (555) 0199',
+      role: 'super_admin',
+      company: 'OmniFlow Solutions',
+      department: 'Executive Management',
+      designation: 'VP of Platform Architecture',
+      assignedClients: ['Nike Digital', 'Starbucks Rewards', 'Tesla Energy'],
+      status: 'Active',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&fit=crop&q=80',
+      timeZone: 'America/Los_Angeles (PST)',
+      language: 'English (US)',
+      lastLogin: '2026-08-02 22:45',
+      createdDate: '2026-01-10',
+      isGoogleEnabled: true,
+      is2FAEnabled: true
+    },
+    {
+      id: 'usr-2',
+      name: 'Michael Ross',
+      email: 'michael@omniflow.io',
+      phone: '+1 (555) 0244',
+      role: 'admin',
+      company: 'OmniFlow Global Media',
+      department: 'Agency Operations',
+      designation: 'Senior Agency Director',
+      assignedClients: ['Nike Digital', 'Starbucks Rewards'],
+      status: 'Active',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&fit=crop&q=80',
+      timeZone: 'America/New_York (EST)',
+      language: 'English (US)',
+      lastLogin: '2026-08-02 19:15',
+      createdDate: '2026-02-01',
+      isGoogleEnabled: true,
+      is2FAEnabled: true
+    },
+    {
+      id: 'usr-3',
+      name: 'Alex Rivera',
+      email: 'alex@omniflow.io',
+      phone: '+1 (555) 3322',
+      role: 'employee',
+      company: 'OmniFlow Global Media',
+      department: 'Content & Social',
+      designation: 'Senior Content Strategist',
+      assignedManager: 'Michael Ross',
+      assignedClients: ['Nike Digital', 'Starbucks Rewards'],
+      status: 'Active',
+      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&fit=crop&q=80',
+      timeZone: 'America/Los_Angeles (PST)',
+      language: 'English (US)',
+      lastLogin: '2026-08-02 18:30',
+      createdDate: '2026-02-15',
+      isGoogleEnabled: true,
+      is2FAEnabled: false
+    },
+    {
+      id: 'usr-4',
+      name: 'Jessica Chen',
+      email: 'jessica@omniflow.io',
+      phone: '+1 (555) 4411',
+      role: 'employee',
+      company: 'OmniFlow Global Media',
+      department: 'Creative Studio',
+      designation: 'Creative Motion Designer',
+      assignedManager: 'Michael Ross',
+      assignedClients: ['Tesla Energy'],
+      status: 'Active',
+      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&fit=crop&q=80',
+      timeZone: 'America/Los_Angeles (PST)',
+      language: 'English (US)',
+      lastLogin: '2026-08-01 11:20',
+      createdDate: '2026-03-01',
+      isGoogleEnabled: true,
+      is2FAEnabled: false
+    },
+    {
+      id: 'usr-5',
+      name: 'John Doe',
+      email: 'john@nike.com',
+      phone: '+1 (555) 0122',
+      role: 'client',
+      company: 'Nike Digital',
+      department: 'Brand Marketing',
+      designation: 'Global Digital Marketing Lead',
+      assignedClients: ['Nike Digital'],
+      status: 'Active',
+      avatar: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=80&fit=crop&q=80',
+      timeZone: 'America/Los_Angeles (PST)',
+      language: 'English (US)',
+      lastLogin: '2026-08-02 21:00',
+      createdDate: '2026-01-15',
+      isGoogleEnabled: true,
+      is2FAEnabled: true
+    },
+    {
+      id: 'usr-6',
+      name: 'Clara Oswald',
+      email: 'clara@starbucks.com',
+      phone: '+1 (555) 0988',
+      role: 'client',
+      company: 'Starbucks Rewards',
+      department: 'Campaign Strategy',
+      designation: 'Social Media Director',
+      assignedClients: ['Starbucks Rewards'],
+      status: 'Pending Verification',
+      avatar: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=120&fit=crop&q=80',
+      timeZone: 'America/Los_Angeles (PST)',
+      language: 'English (US)',
+      lastLogin: '2026-08-01 15:40',
+      createdDate: '2026-03-10',
+      isGoogleEnabled: false,
+      is2FAEnabled: false
+    },
+    {
+      id: 'usr-7',
+      name: 'Marcus Vance',
+      email: 'marcus@tesla.com',
+      phone: '+1 (555) 8877',
+      role: 'client',
+      company: 'Tesla Energy',
+      department: 'Consumer Products',
+      designation: 'Energy Communications Director',
+      assignedClients: ['Tesla Energy'],
+      status: 'Invited',
+      avatar: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=120&fit=crop&q=80',
+      timeZone: 'America/Chicago (CST)',
+      language: 'English (US)',
+      lastLogin: 'Never',
+      createdDate: '2026-07-28',
+      isGoogleEnabled: true,
+      is2FAEnabled: false
+    },
+    {
+      id: 'usr-8',
+      name: 'David Kalu',
+      email: 'david@omniflow.io',
+      phone: '+1 (555) 9900',
+      role: 'employee',
+      company: 'OmniFlow Global Media',
+      department: 'Community Management',
+      designation: 'Community Specialist',
+      assignedClients: ['Nike Digital'],
+      status: 'Suspended',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&fit=crop&q=80',
+      timeZone: 'America/New_York (EST)',
+      language: 'English (US)',
+      lastLogin: '2026-07-25 10:11',
+      createdDate: '2026-04-05',
+      isGoogleEnabled: true,
+      is2FAEnabled: false
+    }
+  ],
+
   loginHistory: [
-    { id: 'lh1', date: '2026-08-02 22:45', device: 'Chrome on Windows 11', ip: '192.168.1.105', status: 'Success (OAuth Google)' },
-    { id: 'lh2', date: '2026-08-01 14:12', device: 'Safari on macOS Sequoia', ip: '172.56.21.90', status: 'Success (Email/Password)' },
-    { id: 'lh3', date: '2026-07-30 09:20', device: 'OmniFlow Mobile (iOS)', ip: '107.12.89.4', status: 'Success (2FA verified)' }
+    { id: 'lh1', date: '2026-08-02 22:45', device: 'Chrome 127 on Windows 11', ip: '192.168.1.105', status: 'Success', browser: 'Chrome 127', location: 'San Francisco, CA', method: 'Google OAuth 2.0' },
+    { id: 'lh2', date: '2026-08-01 14:12', device: 'Safari 17 on macOS Sequoia', ip: '172.56.21.90', status: 'Success', browser: 'Safari 17', location: 'San Francisco, CA', method: 'Email & Password' },
+    { id: 'lh3', date: '2026-07-30 09:20', device: 'OmniFlow iOS Mobile App', ip: '107.12.89.4', status: 'Success (2FA OTP)', browser: 'OmniFlow App v2.6', location: 'San Jose, CA', method: '2FA Verified Email' }
   ],
 
   activeSessions: [
@@ -308,7 +497,7 @@ export const useStore = create<AppState>((set, get) => ({
     aiBrandTone: 'Creative',
     slackNotifications: true,
     twoFactorAuth: true,
-    emailTemplates: 'Hello {{client_name}}, a new social media post is waiting for your review on OmniFlow.',
+    emailTemplates: 'Hello {{user_name}},\n\nWelcome to OmniFlow Enterprise SaaS. Your temporary credentials:\nLogin URL: {{login_url}}\nEmail: {{email}}\nTemporary Password: {{temp_password}}\n\nPlease change your password on first login.',
     autoSessionTimeoutMinutes: 30,
     dailyBackup: true,
     darkTheme: false,
@@ -804,7 +993,6 @@ export const useStore = create<AppState>((set, get) => ({
 
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 
-  // Login with Role Auto-Detection
   login: (email) => {
     let role: Role = 'employee';
     let name = 'Alex Rivera';
@@ -814,24 +1002,33 @@ export const useStore = create<AppState>((set, get) => ({
 
     const lowerEmail = email.toLowerCase();
 
-    if (lowerEmail.includes('sarah') || lowerEmail.includes('admin@') || lowerEmail.includes('super')) {
-      role = 'super_admin';
-      name = 'Sarah Jenkins';
-      avatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&fit=crop&q=80';
-      department = 'Executive Management';
-      company = 'OmniFlow Solutions';
-    } else if (lowerEmail.includes('michael') || lowerEmail.includes('manager')) {
-      role = 'admin';
-      name = 'Michael Ross';
-      avatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&fit=crop&q=80';
-      department = 'Agency Operations';
-      company = 'OmniFlow Global Media';
-    } else if (lowerEmail.includes('nike') || lowerEmail.includes('starbucks') || lowerEmail.includes('tesla') || lowerEmail.includes('client')) {
-      role = 'client';
-      name = lowerEmail.includes('starbucks') ? 'Clara Oswald' : 'John Doe';
-      avatar = lowerEmail.includes('starbucks') ? 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=120&fit=crop&q=80' : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=80&fit=crop&q=80';
-      department = 'Client Marketing';
-      company = lowerEmail.includes('starbucks') ? 'Starbucks Rewards' : 'Nike Digital';
+    const matchedUser = get().users.find(u => u.email.toLowerCase() === lowerEmail);
+    if (matchedUser) {
+      role = matchedUser.role;
+      name = matchedUser.name;
+      avatar = matchedUser.avatar;
+      department = matchedUser.department;
+      company = matchedUser.company;
+    } else {
+      if (lowerEmail.includes('sarah') || lowerEmail.includes('admin@') || lowerEmail.includes('super')) {
+        role = 'super_admin';
+        name = 'Sarah Jenkins';
+        avatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&fit=crop&q=80';
+        department = 'Executive Management';
+        company = 'OmniFlow Solutions';
+      } else if (lowerEmail.includes('michael') || lowerEmail.includes('manager')) {
+        role = 'admin';
+        name = 'Michael Ross';
+        avatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&fit=crop&q=80';
+        department = 'Agency Operations';
+        company = 'OmniFlow Global Media';
+      } else if (lowerEmail.includes('nike') || lowerEmail.includes('starbucks') || lowerEmail.includes('tesla') || lowerEmail.includes('client')) {
+        role = 'client';
+        name = lowerEmail.includes('starbucks') ? 'Clara Oswald' : 'John Doe';
+        avatar = lowerEmail.includes('starbucks') ? 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=120&fit=crop&q=80' : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=80&fit=crop&q=80';
+        department = 'Client Marketing';
+        company = lowerEmail.includes('starbucks') ? 'Starbucks Rewards' : 'Nike Digital';
+      }
     }
 
     set((state) => ({
@@ -848,7 +1045,7 @@ export const useStore = create<AppState>((set, get) => ({
         lastLogin: new Date().toISOString().replace('T', ' ').substring(0, 16)
       },
       loginHistory: [
-        { id: 'lh-' + Date.now(), date: new Date().toISOString().replace('T', ' ').substring(0, 16), device: 'Chrome on Windows 11', ip: '192.168.1.100', status: `Success (${role.replace('_', ' ')})` },
+        { id: 'lh-' + Date.now(), date: new Date().toISOString().replace('T', ' ').substring(0, 16), device: 'Chrome on Windows 11', ip: '192.168.1.100', status: `Success (${role.replace('_', ' ')})`, method: 'Google OAuth 2.0' },
         ...state.loginHistory
       ]
     }));
@@ -858,10 +1055,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   logout: () => set({ isAuthenticated: false }),
 
-  changePassword: (currentPass, newPass) => {
-    // Simulator
-    return true;
-  },
+  changePassword: (currentPass, newPass) => true,
 
   changeEmail: (newEmail) => set((state) => ({
     userEmail: newEmail,
@@ -875,6 +1069,84 @@ export const useStore = create<AppState>((set, get) => ({
   revokeSession: (id) => set((state) => ({
     activeSessions: state.activeSessions.filter(s => s.id !== id)
   })),
+
+  // User Management Functions
+  addUserAccount: (acc) => {
+    const tempPass = 'TempPass' + Math.floor(1000 + Math.random() * 9000) + '!';
+    const newUser: UserAccount = {
+      ...acc,
+      id: 'usr-' + Date.now(),
+      createdDate: new Date().toISOString().split('T')[0],
+      lastLogin: 'Never',
+      tempPassword: tempPass
+    };
+
+    set((state) => ({
+      users: [newUser, ...state.users],
+      activities: [
+        { id: 'act-' + Date.now(), user: state.activeUser.name, userRole: state.activeRole, action: 'created user account', target: acc.name, time: 'Just now' },
+        ...state.activities
+      ]
+    }));
+
+    return newUser;
+  },
+
+  inviteUserAccount: (email, role, company) => {
+    const newInvitedUser: UserAccount = {
+      id: 'usr-' + Date.now(),
+      name: email.split('@')[0].replace('.', ' '),
+      email,
+      phone: '+1 (555) 0000',
+      role,
+      company,
+      department: 'Marketing',
+      designation: 'Invited Specialist',
+      assignedClients: [],
+      status: 'Invited',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&fit=crop&q=80',
+      timeZone: 'America/Los_Angeles (PST)',
+      language: 'English (US)',
+      lastLogin: 'Never',
+      createdDate: new Date().toISOString().split('T')[0],
+      isGoogleEnabled: true,
+      is2FAEnabled: false
+    };
+
+    set((state) => ({
+      users: [newInvitedUser, ...state.users],
+      activities: [
+        { id: 'act-' + Date.now(), user: state.activeUser.name, userRole: state.activeRole, action: 'sent user invitation email to', target: email, time: 'Just now' },
+        ...state.activities
+      ]
+    }));
+
+    return newInvitedUser;
+  },
+
+  updateUserAccount: (id, updates) => set((state) => ({
+    users: state.users.map(u => u.id === id ? { ...u, ...updates } : u)
+  })),
+
+  updateUserStatus: (id, status) => set((state) => ({
+    users: state.users.map(u => u.id === id ? { ...u, status } : u),
+    activities: [
+      { id: 'act-' + Date.now(), user: state.activeUser.name, userRole: state.activeRole, action: `updated status to ${status} for user`, target: state.users.find(u => u.id === id)?.name || '', time: 'Just now' },
+      ...state.activities
+    ]
+  })),
+
+  deleteUserAccount: (id) => set((state) => ({
+    users: state.users.filter(u => u.id !== id)
+  })),
+
+  resetUserPassword: (id) => {
+    const newTemp = 'Reset' + Math.floor(1000 + Math.random() * 9000) + '!';
+    set((state) => ({
+      users: state.users.map(u => u.id === id ? { ...u, tempPassword: newTemp, forcePasswordChange: true } : u)
+    }));
+    return newTemp;
+  },
 
   addClient: (client) => set((state) => {
     const newClient: Client = {

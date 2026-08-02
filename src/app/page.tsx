@@ -7,6 +7,7 @@ import Sidebar from '../components/Sidebar';
 import AuthModal from '../components/AuthModal';
 import LoginPage from '../components/LoginPage';
 
+import UserManagementView from '../components/UserManagementView';
 import DashboardView from '../components/DashboardView';
 import ContentWorkflowView from '../components/ContentWorkflowView';
 import ApprovalCenterView from '../components/ApprovalCenterView';
@@ -37,6 +38,12 @@ export default function Home() {
   const [postPlatform, setPostPlatform] = useState<'Instagram' | 'Facebook' | 'LinkedIn' | 'Twitter' | 'YouTube'>('Instagram');
   const [postCaption, setPostCaption] = useState('');
   const [postMediaUrl, setPostMediaUrl] = useState('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&fit=crop&q=80');
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Handle Theme switching
   useEffect(() => {
@@ -85,6 +92,8 @@ export default function Home() {
     setCurrentView('content');
   };
 
+  if (!mounted) return null;
+
   // IF UNAUTHENTICATED: Render Standalone Full-Screen Login Page!
   if (!isAuthenticated) {
     return (
@@ -126,6 +135,8 @@ export default function Home() {
               onQuickCreate={() => setShowQuickCreateModal(true)}
             />
           )}
+
+          {currentView === 'user-management' && <UserManagementView />}
 
           {currentView === 'clients' && <ClientsView />}
 

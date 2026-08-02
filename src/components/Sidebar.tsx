@@ -18,6 +18,7 @@ interface SidebarItem {
 
 const MENU_ITEMS: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['super_admin', 'admin', 'employee', 'client'] },
+  { id: 'user-management', label: 'User Management', icon: UserCheck, badge: 'RBAC', allowedRoles: ['super_admin', 'admin'] },
   { id: 'clients', label: 'Clients', icon: Users, allowedRoles: ['super_admin', 'admin'] },
   { id: 'projects', label: 'Projects', icon: FolderKanban, allowedRoles: ['super_admin', 'admin', 'employee'] },
   { id: 'content', label: 'Content Workflow', icon: FileCheck2, badge: '11 Stages', allowedRoles: ['super_admin', 'admin', 'employee', 'client'] },
@@ -26,7 +27,7 @@ const MENU_ITEMS: SidebarItem[] = [
   { id: 'calendar', label: 'Calendar', icon: CalendarRange, allowedRoles: ['super_admin', 'admin', 'employee', 'client'] },
   { id: 'tasks', label: 'Tasks', icon: Layers, allowedRoles: ['super_admin', 'admin', 'employee'] },
   { id: 'comments', label: 'Comments Hub', icon: MessageSquare, allowedRoles: ['super_admin', 'admin', 'employee', 'client'] },
-  { id: 'employees', label: 'Employees', icon: UserCheck, allowedRoles: ['super_admin', 'admin'] },
+  { id: 'employees', label: 'Employees', icon: Users, allowedRoles: ['super_admin', 'admin'] },
   { id: 'reports', label: 'Analytics & Reports', icon: BarChart3, allowedRoles: ['super_admin', 'admin', 'employee'] },
   { id: 'integrations', label: 'Integrations', icon: Share2, badge: '12 APIs', allowedRoles: ['super_admin', 'admin'] },
   { id: 'security', label: 'Security & Audit', icon: Lock, allowedRoles: ['super_admin'] },
