@@ -5,6 +5,7 @@ import { useStore, Post, Role } from '../store/useStore';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import AuthModal from '../components/AuthModal';
+import LoginPage from '../components/LoginPage';
 
 import DashboardView from '../components/DashboardView';
 import ContentWorkflowView from '../components/ContentWorkflowView';
@@ -22,7 +23,7 @@ import SettingsProfileView from '../components/SettingsProfileView';
 import { Sparkles, Plus, X, Image, Wand2 } from 'lucide-react';
 
 export default function Home() {
-  const { theme, posts, clients, addPost } = useStore();
+  const { theme, posts, clients, addPost, isAuthenticated } = useStore();
 
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -84,6 +85,16 @@ export default function Home() {
     setCurrentView('content');
   };
 
+  // IF UNAUTHENTICATED: Render Standalone Full-Screen Login Page!
+  if (!isAuthenticated) {
+    return (
+      <LoginPage 
+        onLoginSuccess={(role) => setCurrentView('dashboard')} 
+      />
+    );
+  }
+
+  // IF AUTHENTICATED: Render Dashboard & Authenticated SaaS Views
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)] font-sans antialiased">
       
@@ -98,9 +109,10 @@ export default function Home() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         
-        {/* Sticky Header with Role Switcher & Search */}
+        {/* Sticky Header with 13-Item User Profile Dropdown & Search */}
         <Header 
           currentView={currentView} 
+          setCurrentView={setCurrentView}
           onQuickCreate={() => setShowQuickCreateModal(true)}
           onOpenAuthModal={() => setShowAuthModal(true)}
         />
@@ -159,7 +171,7 @@ export default function Home() {
 
       </div>
 
-      {/* Security & Authentication Modal */}
+      {/* Security & Authentication Settings Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 

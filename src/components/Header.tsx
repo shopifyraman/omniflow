@@ -2,34 +2,29 @@
 
 import React, { useState } from 'react';
 import { useStore, Role } from '../store/useStore';
+import ChangePasswordModal from './ChangePasswordModal';
 import { 
-  Sun, Moon, Bell, Search, Plus, User, Shield, ChevronDown, Check, Lock, Sparkles, ExternalLink, X 
+  Sun, Moon, Bell, Search, Plus, User, Shield, ChevronDown, Check, Lock, 
+  KeyRound, Mail, Share2, Globe, Laptop, History, LogOut, X, Edit3, Eye, Sparkles 
 } from 'lucide-react';
 
 interface HeaderProps {
   currentView: string;
+  setCurrentView: (view: string) => void;
   onQuickCreate: () => void;
   onOpenAuthModal: () => void;
 }
 
-export default function Header({ currentView, onQuickCreate, onOpenAuthModal }: HeaderProps) {
+export default function Header({ currentView, setCurrentView, onQuickCreate, onOpenAuthModal }: HeaderProps) {
   const { 
-    theme, toggleTheme, activeRole, setRole, activeUser, notifications, markNotificationRead, markAllNotificationsRead 
+    theme, toggleTheme, activeRole, activeUser, notifications, markNotificationRead, markAllNotificationsRead, logout, settings, toggleGoogleConnection 
   } = useStore();
 
-  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
-
-  const roles: { id: Role; label: string; desc: string; badgeBg: string }[] = [
-    { id: 'super_admin', label: 'Super Admin', desc: 'Full System & Tenant Control', badgeBg: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300' },
-    { id: 'admin', label: 'Agency Manager (Admin)', desc: 'Agency Team, Clients & Projects', badgeBg: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
-    { id: 'employee', label: 'Employee / Creator', desc: 'Content, Tasks & Schedule', badgeBg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
-    { id: 'client', label: 'Client (Nike Digital)', desc: 'Approvals, Comments & Calendar', badgeBg: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' }
-  ];
-
-  const currentRoleObj = roles.find(r => r.id === activeRole);
 
   return (
     <header className="h-16 border-b border-[var(--border)] bg-[var(--card)] px-6 flex items-center justify-between z-20 sticky top-0 backdrop-blur-md bg-opacity-95 dark:bg-opacity-95">
@@ -47,13 +42,13 @@ export default function Header({ currentView, onQuickCreate, onOpenAuthModal }: 
           <input
             type="text"
             placeholder="Search clients, posts, tasks, media..."
-            className="w-full bg-gray-50 dark:bg-gray-800/80 text-xs px-3.5 py-2 pl-9 rounded-xl border border-[var(--border)] outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-gray-800 dark:text-gray-200 transition-all"
+            className="w-full bg-gray-50 dark:bg-gray-800/80 text-xs px-3.5 py-2 pl-9 rounded-xl border border-[var(--border)] outline-none focus:border-indigo-500 text-gray-800 dark:text-gray-200 transition-all"
           />
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
         </div>
       </div>
 
-      {/* Right Actions & Role Switcher */}
+      {/* Right Actions & User Menu */}
       <div className="flex items-center gap-3">
         
         {/* Quick Post Create */}
@@ -114,46 +109,32 @@ export default function Header({ currentView, onQuickCreate, onOpenAuthModal }: 
               </div>
 
               <div className="py-2 max-h-80 overflow-y-auto space-y-2">
-                {notifications.length === 0 ? (
-                  <p className="text-xs text-center py-6 text-gray-400">No notifications yet.</p>
-                ) : (
-                  notifications.map((n) => (
-                    <div 
-                      key={n.id} 
-                      onClick={() => markNotificationRead(n.id)}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                        n.read 
-                          ? 'border-[var(--border)] bg-gray-50/50 dark:bg-gray-900/20 text-gray-500' 
-                          : 'border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/30 dark:bg-indigo-950/20 text-gray-900 dark:text-gray-100 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{n.title}</span>
-                        <span className="text-[10px] text-gray-400">{n.time}</span>
-                      </div>
-                      <p className="text-xs mt-1 leading-snug">{n.message}</p>
+                {notifications.map((n) => (
+                  <div 
+                    key={n.id} 
+                    onClick={() => markNotificationRead(n.id)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                      n.read 
+                        ? 'border-[var(--border)] bg-gray-50/50 dark:bg-gray-900/20 text-gray-500' 
+                        : 'border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/30 dark:bg-indigo-950/20 text-gray-900 dark:text-gray-100 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{n.title}</span>
+                      <span className="text-[10px] text-gray-400">{n.time}</span>
                     </div>
-                  ))
-                )}
+                    <p className="text-xs mt-1 leading-snug">{n.message}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* Security / Auth Status Trigger */}
-        <button
-          onClick={onOpenAuthModal}
-          title="Security & Auth Settings"
-          className="p-2 rounded-xl border border-[var(--border)] hover:bg-gray-100 dark:hover:bg-gray-800 text-emerald-600 dark:text-emerald-400 transition-all flex items-center gap-1 text-xs font-semibold"
-        >
-          <Lock className="w-3.5 h-3.5" />
-          <span className="hidden lg:inline text-[11px]">Auth & 2FA</span>
-        </button>
-
-        {/* Interactive Role Switcher Dropdown */}
+        {/* User Profile Dropdown Menu (Top Right Corner) */}
         <div className="relative">
           <button
-            onClick={() => setShowRoleDropdown(!showRoleDropdown)}
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
             className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-left"
           >
             <img 
@@ -167,51 +148,163 @@ export default function Header({ currentView, onQuickCreate, onOpenAuthModal }: 
                 <ChevronDown className="w-3 h-3 text-gray-400" />
               </div>
               <div className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 capitalize">
-                {currentRoleObj?.label.split(' ')[0]} Role
+                {activeRole.replace('_', ' ')}
               </div>
             </div>
           </button>
 
-          {/* Role Selection Menu Modal */}
-          {showRoleDropdown && (
-            <div className="absolute right-0 mt-3 w-72 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
-              <div className="px-3 py-2 border-b border-[var(--border)] mb-2">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Switch Active Role</div>
-                <div className="text-[11px] text-gray-500 dark:text-gray-400">Select role to test UI views & permissions</div>
+          {/* Full User Menu Dropdown Panel (13 Items) */}
+          {showProfileMenu && (
+            <div className="absolute right-0 mt-3 w-72 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 max-h-[85vh] overflow-y-auto custom-scrollbar">
+              
+              {/* Profile Card Summary Header */}
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-[var(--border)] mb-2">
+                <div className="flex items-center gap-2.5">
+                  <img src={activeUser.avatar} alt={activeUser.name} className="w-9 h-9 rounded-full object-cover" />
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-gray-900 dark:text-white truncate">{activeUser.name}</div>
+                    <div className="text-[10px] text-gray-500 truncate">{activeUser.email}</div>
+                  </div>
+                </div>
+                <div className="mt-2 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-md inline-block">
+                  {activeRole.replace('_', ' ')}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                {roles.map((r) => {
-                  const isSelected = activeRole === r.id;
-                  return (
-                    <button
-                      key={r.id}
-                      onClick={() => {
-                        setRole(r.id);
-                        setShowRoleDropdown(false);
-                      }}
-                      className={`w-full flex items-start p-2.5 rounded-xl text-left transition-all ${
-                        isSelected 
-                          ? 'bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800' 
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{r.label}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />}
-                        </div>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{r.desc}</p>
-                      </div>
-                    </button>
-                  );
-                })}
+              {/* 13 Menu Items List */}
+              <div className="space-y-0.5 text-xs font-semibold">
+                
+                <button
+                  onClick={() => { setCurrentView('profile'); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <User className="w-4 h-4 text-indigo-600" />
+                  <span>My Profile</span>
+                </button>
+
+                <button
+                  onClick={() => { setCurrentView('profile'); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <Edit3 className="w-4 h-4 text-blue-600" />
+                  <span>Edit Profile</span>
+                </button>
+
+                <button
+                  onClick={() => { setShowChangePasswordModal(true); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <KeyRound className="w-4 h-4 text-amber-600" />
+                  <span>Change Password</span>
+                </button>
+
+                <button
+                  onClick={() => { setCurrentView('profile'); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <Mail className="w-4 h-4 text-emerald-600" />
+                  <span>Change Email</span>
+                </button>
+
+                <button
+                  onClick={() => { toggleGoogleConnection(); setShowProfileMenu(false); }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Share2 className="w-4 h-4 text-purple-600" />
+                    <span>Google Account</span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${settings.isGoogleConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'}`}>
+                    {settings.isGoogleConnected ? 'Connected' : 'Sync'}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => { setCurrentView('settings'); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <Bell className="w-4 h-4 text-pink-600" />
+                  <span>Notification Settings</span>
+                </button>
+
+                <button
+                  onClick={() => { setCurrentView('settings'); setShowProfileMenu(false); }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Globe className="w-4 h-4 text-sky-600" />
+                    <span>Language</span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-bold">{settings.language}</span>
+                </button>
+
+                <button
+                  onClick={() => { toggleTheme(); setShowProfileMenu(false); }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <div className="flex items-center gap-2.5">
+                    {theme === 'light' ? <Moon className="w-4 h-4 text-indigo-600" /> : <Sun className="w-4 h-4 text-amber-400" />}
+                    <span>Theme</span>
+                  </div>
+                  <span className="text-[10px] capitalize font-bold text-gray-400">{theme} Mode</span>
+                </button>
+
+                <button
+                  onClick={() => { onOpenAuthModal(); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <Shield className="w-4 h-4 text-teal-600" />
+                  <span>Security Settings</span>
+                </button>
+
+                <button
+                  onClick={() => { onOpenAuthModal(); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <History className="w-4 h-4 text-orange-600" />
+                  <span>Login Activity</span>
+                </button>
+
+                <button
+                  onClick={() => { onOpenAuthModal(); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <Laptop className="w-4 h-4 text-indigo-600" />
+                  <span>Active Devices</span>
+                </button>
+
+                <button
+                  onClick={() => { setCurrentView('settings'); setShowProfileMenu(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <Lock className="w-4 h-4 text-gray-600" />
+                  <span>Privacy Settings</span>
+                </button>
+
+                <div className="pt-1 border-t border-[var(--border)]">
+                  <button
+                    onClick={logout}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 font-bold"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out / Logout</span>
+                  </button>
+                </div>
+
               </div>
+
             </div>
           )}
         </div>
 
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal 
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+      />
+
     </header>
   );
 }

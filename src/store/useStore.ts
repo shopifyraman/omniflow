@@ -48,7 +48,7 @@ export interface Project {
   filesCount: number;
   tasksCount: number;
   completedTasks: number;
-  approvalProgress: number; // percentage
+  approvalProgress: number;
 }
 
 export interface PostVersion {
@@ -188,6 +188,7 @@ export interface Integration {
 export interface AppSettings {
   agencyName: string;
   timezone: string;
+  language: string;
   aiBrandTone: 'Professional' | 'Casual' | 'Creative' | 'Bold';
   slackNotifications: boolean;
   twoFactorAuth: boolean;
@@ -195,11 +196,12 @@ export interface AppSettings {
   autoSessionTimeoutMinutes: number;
   dailyBackup: boolean;
   darkTheme: boolean;
+  isGoogleConnected: boolean;
 }
 
 interface AppState {
   activeRole: Role;
-  activeUser: { name: string; email: string; avatar: string; department: string };
+  activeUser: { name: string; email: string; avatar: string; department: string; phone: string; company: string; lastLogin: string };
   clients: Client[];
   employees: Employee[];
   projects: Project[];
@@ -212,17 +214,21 @@ interface AppState {
   settings: AppSettings;
   theme: 'light' | 'dark';
   
-  // Auth & Security state
+  // Auth State
   isAuthenticated: boolean;
   userEmail: string;
   loginHistory: { id: string; date: string; device: string; ip: string; status: string }[];
   activeSessions: { id: string; device: string; location: string; lastActive: string; current: boolean }[];
   
-  // Actions
+  // Auth & Security Actions
   setRole: (role: Role) => void;
   toggleTheme: () => void;
-  login: (email: string) => void;
+  login: (email: string) => Role;
   logout: () => void;
+  changePassword: (currentPass: string, newPass: string) => boolean;
+  changeEmail: (newEmail: string) => void;
+  toggleGoogleConnection: () => void;
+  revokeSession: (id: string) => void;
   
   // Client CRUD
   addClient: (client: Omit<Client, 'id' | 'projectsCount' | 'joinedDate'>) => void;
@@ -269,10 +275,20 @@ interface AppState {
 
 export const useStore = create<AppState>((set, get) => ({
   activeRole: 'super_admin',
-  activeUser: { name: 'Sarah Jenkins', email: 'sarah@omniflow.io', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&fit=crop&q=80', department: 'Executive Management' },
+  activeUser: { 
+    name: 'Sarah Jenkins', 
+    email: 'sarah@omniflow.io', 
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&fit=crop&q=80', 
+    department: 'Executive Management',
+    phone: '+1 (555) 0199',
+    company: 'OmniFlow Solutions',
+    lastLogin: '2026-08-02 22:45'
+  },
   theme: 'light',
-  isAuthenticated: true,
-  userEmail: 'sarah@omniflow.io',
+  
+  // Default to FALSE so app always lands on Login Page!
+  isAuthenticated: false,
+  userEmail: '',
 
   loginHistory: [
     { id: 'lh1', date: '2026-08-02 22:45', device: 'Chrome on Windows 11', ip: '192.168.1.105', status: 'Success (OAuth Google)' },
@@ -288,13 +304,15 @@ export const useStore = create<AppState>((set, get) => ({
   settings: {
     agencyName: 'OmniFlow Global Media',
     timezone: 'America/Los_Angeles (PST)',
+    language: 'English (US)',
     aiBrandTone: 'Creative',
     slackNotifications: true,
     twoFactorAuth: true,
     emailTemplates: 'Hello {{client_name}}, a new social media post is waiting for your review on OmniFlow.',
     autoSessionTimeoutMinutes: 30,
     dailyBackup: true,
-    darkTheme: false
+    darkTheme: false,
+    isGoogleConnected: true
   },
 
   clients: [
@@ -755,43 +773,108 @@ export const useStore = create<AppState>((set, get) => ({
     let email = 'sarah@omniflow.io';
     let avatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&fit=crop&q=80';
     let department = 'Executive Management';
+    let company = 'OmniFlow Solutions';
 
     if (role === 'admin') {
       name = 'Michael Ross';
       email = 'michael@omniflow.io';
       avatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&fit=crop&q=80';
       department = 'Agency Operations';
+      company = 'OmniFlow Global Media';
     } else if (role === 'employee') {
       name = 'Alex Rivera';
       email = 'alex@omniflow.io';
       avatar = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&fit=crop&q=80';
       department = 'Content & Social';
+      company = 'OmniFlow Global Media';
     } else if (role === 'client') {
       name = 'John Doe';
       email = 'john@nike.com';
       avatar = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=80&fit=crop&q=80';
       department = 'Nike Digital Marketing';
+      company = 'Nike Digital';
     }
 
     return { 
       activeRole: role, 
-      activeUser: { name, email, avatar, department },
+      activeUser: { ...state.activeUser, name, email, avatar, department, company },
       userEmail: email
     };
   }),
 
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 
-  login: (email) => set((state) => ({
-    isAuthenticated: true,
-    userEmail: email,
-    loginHistory: [
-      { id: 'lh-' + Date.now(), date: new Date().toISOString().replace('T', ' ').substring(0, 16), device: 'Web Browser', ip: '192.168.1.100', status: 'Success' },
-      ...state.loginHistory
-    ]
-  })),
+  // Login with Role Auto-Detection
+  login: (email) => {
+    let role: Role = 'employee';
+    let name = 'Alex Rivera';
+    let avatar = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&fit=crop&q=80';
+    let department = 'Content & Social';
+    let company = 'OmniFlow Global Media';
+
+    const lowerEmail = email.toLowerCase();
+
+    if (lowerEmail.includes('sarah') || lowerEmail.includes('admin@') || lowerEmail.includes('super')) {
+      role = 'super_admin';
+      name = 'Sarah Jenkins';
+      avatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&fit=crop&q=80';
+      department = 'Executive Management';
+      company = 'OmniFlow Solutions';
+    } else if (lowerEmail.includes('michael') || lowerEmail.includes('manager')) {
+      role = 'admin';
+      name = 'Michael Ross';
+      avatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&fit=crop&q=80';
+      department = 'Agency Operations';
+      company = 'OmniFlow Global Media';
+    } else if (lowerEmail.includes('nike') || lowerEmail.includes('starbucks') || lowerEmail.includes('tesla') || lowerEmail.includes('client')) {
+      role = 'client';
+      name = lowerEmail.includes('starbucks') ? 'Clara Oswald' : 'John Doe';
+      avatar = lowerEmail.includes('starbucks') ? 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=120&fit=crop&q=80' : 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=80&fit=crop&q=80';
+      department = 'Client Marketing';
+      company = lowerEmail.includes('starbucks') ? 'Starbucks Rewards' : 'Nike Digital';
+    }
+
+    set((state) => ({
+      isAuthenticated: true,
+      userEmail: email,
+      activeRole: role,
+      activeUser: {
+        name,
+        email,
+        avatar,
+        department,
+        phone: '+1 (555) 0199',
+        company,
+        lastLogin: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      },
+      loginHistory: [
+        { id: 'lh-' + Date.now(), date: new Date().toISOString().replace('T', ' ').substring(0, 16), device: 'Chrome on Windows 11', ip: '192.168.1.100', status: `Success (${role.replace('_', ' ')})` },
+        ...state.loginHistory
+      ]
+    }));
+
+    return role;
+  },
 
   logout: () => set({ isAuthenticated: false }),
+
+  changePassword: (currentPass, newPass) => {
+    // Simulator
+    return true;
+  },
+
+  changeEmail: (newEmail) => set((state) => ({
+    userEmail: newEmail,
+    activeUser: { ...state.activeUser, email: newEmail }
+  })),
+
+  toggleGoogleConnection: () => set((state) => ({
+    settings: { ...state.settings, isGoogleConnected: !state.settings.isGoogleConnected }
+  })),
+
+  revokeSession: (id) => set((state) => ({
+    activeSessions: state.activeSessions.filter(s => s.id !== id)
+  })),
 
   addClient: (client) => set((state) => {
     const newClient: Client = {
